@@ -11,11 +11,8 @@ data/
 *.tgz
 *.tar.gz
 
-# Models
-*.pth
-*.pt
-*.h5
-*.ckpt
+# Models (weights + plots)
+models/
 
 # Environments
 .venv/
