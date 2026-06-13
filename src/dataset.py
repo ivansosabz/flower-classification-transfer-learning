@@ -1,3 +1,32 @@
+# dataset.py
+#
+# PROPOSITO: Prepara las fotos de flores y las carga en lotes para entrenar.
+# TECNOLOGIA: PyTorch, torchvision, PIL.
+#
+# QUE HACE:
+# 1. prepare_dataset() -> toma las carpetas originales de Kaggle y las separa
+#    en train (70%), val (15%) y test (15%). Mezcla las fotos al azar antes de
+#    dividirlas para que no queden ordenadas.
+# 2. get_dataloaders() -> carga las fotos en lotes (batches) y les aplica
+#    transforms (cambios de tamano, rotacion, etc.). Devuelve tres grupos:
+#    train_loader (con aumentos de datos), val_loader y test_loader (sin aumentos).
+#
+# LAS 5 FLORES: daisy (margarita), dandelion (diente de leon), rose (rosa),
+#               sunflower (girasol), tulip (tulipan).
+#
+# Transforms de entrenamiento (train_transform):
+#   - RandomResizedCrop: corta la foto en un lugar al azar y la redimensiona a 224x224
+#   - RandomHorizontalFlip: voltea la foto espejada al azar
+#   - RandomRotation(20): rota la foto hasta 20 grados
+#   - ColorJitter: cambia brillo, contraste, saturacion y tono al azar
+#   - Normalize: ajusta los colores para que coincidan con los que el modelo
+#     espera (los valores con los que fue entrenado en ImageNet)
+#
+# Transforms de validacion (val_transform):
+#   - Resize(256): redimensiona a 256
+#   - CenterCrop(224): corta el centro a 224x224
+#   - Normalize: mismo ajuste de colores
+
 import os
 import shutil
 import random

@@ -1,3 +1,19 @@
+# inference.py
+#
+# PROPOSITO: Toma una foto de una flor y predice de que tipo es.
+# TECNOLOGIA: PyTorch, PIL.
+#
+# QUE HACE:
+# predict() -> recibe la ruta de una imagen, la procesa (redimensiona a
+# 224x224, normaliza colores), la pasa por el modelo entrenado, y devuelve
+# el nombre de la flor + el nivel de confianza (0 a 1).
+#
+# Se usa desde consola:
+#   python src/inference.py ruta/de/una/foto.jpg --model models/best_model.pth
+#
+# La funcion predict() tambien se puede importar desde otro script (util
+# para la Fase 2 cuando hagamos la interfaz grafica).
+
 import argparse
 from pathlib import Path
 
@@ -24,6 +40,7 @@ def predict(image_path, model_path, device=None):
         probabilities = torch.nn.functional.softmax(outputs, dim=1)
         confidence, predicted = torch.max(probabilities, 1)
 
+    # Softmax convierte los numeros crudos en probabilidades (suma = 1)
     class_name = CLASSES[predicted.item()]
     confidence = confidence.item()
 

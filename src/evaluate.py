@@ -1,3 +1,22 @@
+# evaluate.py
+#
+# PROPOSITO: Mide que tan bien funciona el modelo entrenado.
+# TECNOLOGIA: PyTorch, scikit-learn, matplotlib.
+#
+# QUE HACE:
+# 1. Carga las fotos de TEST (las que el modelo NUNCA vio durante entrenamiento)
+# 2. Carga el modelo guardado (best_model.pth)
+# 3. Pasa todas las fotos de test por el modelo y compara con la respuesta correcta
+# 4. Calcula y muestra:
+#    - Accuracy (porcentaje de aciertos)
+#    - F1-Score macro (promedio de precision+recall por clase)
+#    - F1-Score por cada flor
+#    - Matriz de confusion (grafico que muestra donde se confunde el modelo)
+# 5. Guarda la matriz de confusion como imagen PNG
+#
+# EJECUCION:
+#   python src/evaluate.py --model-path models/best_model.pth
+
 import argparse
 from pathlib import Path
 
@@ -14,13 +33,13 @@ def plot_loss(history, save_path="models/loss_plot.png"):
     plt.figure()
     plt.plot(history["train_loss"], label="Train Loss")
     plt.plot(history["val_loss"], label="Val Loss")
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
+    plt.xlabel("Epoca")
+    plt.ylabel("Perdida (Loss)")
     plt.legend()
-    plt.title("Training and Validation Loss")
+    plt.title("Perdida durante entrenamiento")
     plt.savefig(save_path)
     plt.close()
-    print(f"Loss plot saved to {save_path}")
+    print(f"Grafico de perdida guardado en {save_path}")
 
 
 def evaluate(args):
@@ -46,6 +65,7 @@ def evaluate(args):
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
 
+    # Calculo de metricas
     cm = confusion_matrix(all_labels, all_preds)
     f1_macro = f1_score(all_labels, all_preds, average="macro")
     f1_per_class = f1_score(all_labels, all_preds, average=None)
@@ -53,17 +73,18 @@ def evaluate(args):
 
     print(f"Test Accuracy: {accuracy:.4f}")
     print(f"Macro F1-Score: {f1_macro:.4f}")
-    print("\nPer-class F1-Score:")
+    print("\nF1-Score por clase:")
     for cls_name, f1 in zip(CLASSES, f1_per_class):
         print(f"  {cls_name:12s}: {f1:.4f}")
 
+    # Grafico de matriz de confusion
     fig, ax = plt.subplots(figsize=(8, 6))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=CLASSES)
     disp.plot(ax=ax, cmap="Blues", values_format="d")
-    plt.title(f"Confusion Matrix (Acc={accuracy:.4f}, F1={f1_macro:.4f})")
+    plt.title(f"Matriz de Confusion (Acc={accuracy:.4f}, F1={f1_macro:.4f})")
     plt.savefig(args.cm_path)
     plt.close()
-    print(f"Confusion matrix saved to {args.cm_path}")
+    print(f"Matriz de confusion guardada en {args.cm_path}")
 
 
 if __name__ == "__main__":

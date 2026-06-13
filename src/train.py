@@ -1,3 +1,24 @@
+# train.py
+#
+# PROPOSITO: Entrena el modelo para que aprenda a clasificar flores.
+# TECNOLOGIA: PyTorch, Adam, tqdm.
+#
+# QUE HACE:
+# 1. Carga las fotos de train y val usando get_dataloaders()
+# 2. Crea el modelo MobileNetV2 con build_model()
+# 3. Por cada EPOCA (vuelta completa a todas las fotos):
+#    a. train_epoch() -> pasa las fotos de entrenamiento por el modelo,
+#       calcula el error (loss), ajusta los pesos con Adam
+#    b. validate() -> pasa las fotos de validacion SIN entrenar, solo
+#       mide que tan bien le esta yendo
+# 4. Si el accuracy de validacion mejora, guarda los pesos en best_model.pth
+#    (early stopping: nos quedamos con el mejor modelo)
+#
+# SOLO se entrenan las capas del classifier, el backbone queda congelado.
+#
+# EJECUCION:
+#   python src/train.py --data-dir data/split --epochs 20 --batch-size 32
+
 import argparse
 from pathlib import Path
 
@@ -11,6 +32,7 @@ from model import build_model
 
 
 def train_epoch(model, loader, criterion, optimizer, device):
+    # Modo entrenamiento: activa dropout y permite ajustar pesos
     model.train()
     total_loss = 0
     correct = 0
@@ -19,11 +41,11 @@ def train_epoch(model, loader, criterion, optimizer, device):
     for images, labels in tqdm(loader, desc="Train"):
         images, labels = images.to(device), labels.to(device)
 
-        optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+        optimizer.zero_grad()           # limpia ajustes anteriores
+        outputs = model(images)          # pasa las fotos por el modelo
+        loss = criterion(outputs, labels)  # calcula el error
+        loss.backward()                  # calcula como ajustar los pesos
+        optimizer.step()                 # aplica el ajuste
 
         total_loss += loss.item() * images.size(0)
         _, predicted = torch.max(outputs, 1)
@@ -34,12 +56,13 @@ def train_epoch(model, loader, criterion, optimizer, device):
 
 
 def validate(model, loader, criterion, device):
+    # Modo evaluacion: desactiva dropout, no ajusta pesos
     model.eval()
     total_loss = 0
     correct = 0
     total = 0
 
-    with torch.no_grad():
+    with torch.no_grad():  # no calcula gradientes (ahorra memoria y tiempo)
         for images, labels in tqdm(loader, desc="Val"):
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
@@ -55,14 +78,14 @@ def validate(model, loader, criterion, device):
 
 def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    print(f"Usando dispositivo: {device}")
 
     train_loader, val_loader, _ = get_dataloaders(
         args.data_dir, batch_size=args.batch_size
     )
 
     model = build_model(num_classes=5, dropout_rate=args.dropout).to(device)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss()   # funcion de error para clasificacion
     optimizer = Adam(model.classifier.parameters(), lr=args.lr)
 
     best_acc = 0.0
@@ -70,18 +93,19 @@ def main(args):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc = validate(model, val_loader, criterion, device)
 
-        print(f"Epoch {epoch:2d}/{args.epochs}  "
+        print(f"Epoca {epoch:2d}/{args.epochs}  "
               f"Train Loss: {train_loss:.4f} Acc: {train_acc:.4f}  "
               f"Val Loss: {val_loss:.4f} Acc: {val_acc:.4f}")
 
+        # Si mejoro, guardamos el modelo (early stopping)
         if val_acc > best_acc:
             best_acc = val_acc
             models_dir = Path(args.models_dir)
             models_dir.mkdir(parents=True, exist_ok=True)
             torch.save(model.state_dict(), models_dir / "best_model.pth")
-            print(f"  -> Saved best model (val_acc={val_acc:.4f})")
+            print(f"  -> Guardado mejor modelo (val_acc={val_acc:.4f})")
 
-    print(f"Training complete. Best val_acc: {best_acc:.4f}")
+    print(f"Entrenamiento completo. Mejor val_acc: {best_acc:.4f}")
 
 
 if __name__ == "__main__":
